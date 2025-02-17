@@ -4,19 +4,177 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Game Tebak Gambar</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="game.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"></script>
+  <style>
+    #game-container {
+      text-align: center;
+      padding: 20px;
+    }
+    #game-image {
+      width: 300px;
+      height: 200px;
+      object-fit: cover;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #timer {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center">
-  <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-lg">
-    <h1 class="text-2xl font-semibold text-center mb-4">Game Tebak Gambar</h1>
-    <div id="image-container" class="mb-4">
-      <img id="game-image" alt="Image" class="w-full h-auto rounded-lg hidden">
-    </div>
-    <input type="text" id="answer" class="w-full p-2 border border-gray-300 rounded-lg mb-4" placeholder="Tebak gambar...">
-    <button id="submit-btn" class="w-full bg-blue-500 text-white p-2 rounded-lg">Kirim Jawaban</button>
-    <button id="randomize-btn" class="w-full bg-yellow-500 text-white p-2 rounded-lg mt-4 hidden">Acak Gambar</button>
-    <p id="result" class="text-center mt-4 text-lg"></p>
-  </div>
+<body>
+
+<div id="game-container">
+  <img id="game-image" class="hidden" alt="Game Image">
+  <input type="text" id="answer" placeholder="Masukkan Jawaban">
+  <button id="submit-btn">Submit</button>
+  <button id="randomize-btn" class="hidden">Acak Gambar</button>
+  <div id="result"></div>
+  <div id="timer">Waktu: 30s</div>
+</div>
+
+<script>
+// Data gambar dan jawaban yang benar
+const images = [
+  { src: 'padang.jpeg', name: 'Rumah Padang', correctAnswers: ['padang', 'rumah padang'] },
+  { src: 'radakh.webp', name: 'Radakh', correctAnswers: ['radakh'] },
+  { src: 'rumah_bolon.webp', name: 'Rumah Bolon', correctAnswers: ['rumah bolon', 'bolon'] },
+  { src: 'rumah_gadang.webp', name: 'Rumah Gadang', correctAnswers: ['rumah gadang'] },
+  { src: 'rumah_betang.webp', name: 'Rumah Betang', correctAnswers: ['rumah betang', 'betang'] }
+];
+
+let score = 0;
+let wrongAnswers = 0;
+let gameOver = false;
+let timer;
+let currentImageIndex = 0;
+
+const gameImage = document.getElementById('game-image');
+const answerInput = document.getElementById('answer');
+const submitButton = document.getElementById('submit-btn');
+const randomizeButton = document.getElementById('randomize-btn');
+const resultText = document.getElementById('result');
+const timerElement = document.getElementById('timer');
+
+// Fungsi untuk memilih gambar secara acak
+function getRandomImage() {
+  const randomIndex = Math.floor(Math.random() * images.length);
+  return images[randomIndex];
+}
+
+// Fungsi untuk menampilkan gambar berikutnya
+function showNextImage() {
+  const randomImage = getRandomImage();
+  gameImage.src = randomImage.src;
+  gameImage.alt = randomImage.name;
+  gameImage.classList.remove('hidden'); // Menampilkan gambar
+}
+
+// Fungsi untuk mengacak gambar
+function randomizeImage() {
+  const randomImage = getRandomImage();
+  gameImage.src = randomImage.src;
+  gameImage.alt = randomImage.name;
+}
+
+// Fungsi untuk memulai timer
+function startTimer() {
+  let timeLeft = 30; // Waktu permainan 30 detik
+  timer = setInterval(() => {
+    timeLeft--;
+    timerElement.textContent = `Waktu: ${timeLeft}s`;
+
+    if (timeLeft <= 0) {
+      gameOver = true;
+      clearInterval(timer);
+      Swal.fire({
+        title: 'Game Over!',
+        text: `Waktu habis. Skor akhir: ${score}`,
+        icon: 'error',
+        confirmButtonText: 'Mulai Ulang',
+      }).then(() => {
+        resetGame();
+      });
+    }
+  }, 1000);
+}
+
+// Event untuk mengirimkan jawaban
+submitButton.addEventListener('click', function() {
+  if (gameOver) return;
+
+  const userAnswer = answerInput.value.trim().toLowerCase();
+  const correctAnswers = images.find(image => image.name === gameImage.alt).correctAnswers;
+
+  if (correctAnswers.includes(userAnswer)) {
+    score++;
+    Swal.fire({
+      title: 'Jawaban Benar!',
+      text: `Skor: ${score}`,
+      icon: 'success',
+      confirmButtonText: 'Lanjutkan',
+    }).then(() => {
+      showNextImage();
+      answerInput.value = '';
+      randomizeButton.classList.add('hidden');
+    });
+  } else {
+    wrongAnswers++;
+    if (wrongAnswers >= 3) {
+      gameOver = true;
+      Swal.fire({
+        title: 'Game Over!',
+        text: `Kesalahan terlalu banyak. Skor akhir: ${score}`,
+        icon: 'error',
+        confirmButtonText: 'Mulai Ulang',
+      }).then(() => {
+        resetGame();
+      });
+    } else {
+      Swal.fire({
+        title: 'Jawaban Salah!',
+        text: `Coba lagi! Kesalahan: ${wrongAnswers}/3`,
+        icon: 'error',
+        confirmButtonText: 'Lanjutkan',
+      }).then(() => {
+        randomizeButton.classList.remove('hidden');
+      });
+    }
+  }
+});
+
+// Tombol untuk mengacak gambar jika jawaban salah
+randomizeButton.addEventListener('click', randomizeImage);
+
+// Fungsi untuk mereset permainan
+function resetGame() {
+  score = 0;
+  wrongAnswers = 0;
+  gameOver = false;
+  timerElement.textContent = 'Waktu: 30s';
+  showNextImage();
+  startTimer();
+  randomizeButton.classList.add('hidden');
+}
+
+// Menampilkan gambar pertama secara acak saat halaman dimuat
+window.onload = function() {
+  showNextImage();
+  startTimer();
+};
+</script>
+
 </body>
 </html>
